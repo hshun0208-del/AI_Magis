@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Magis 社内チーム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{ --paper:#f3efe6; --ink:#211c16; --line:#ddd5c5; --side:#efe9dd; --card:#fff; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; }
+  body{ font-family:'Zen Kaku Gothic New',sans-serif; background:var(--paper); color:var(--ink); height:100vh; }
+
+  .app{ display:flex; height:100vh; position:relative; }
+
+  /* --- 左サイドバー --- */
+  .sidebar{ width:212px; flex:0 0 auto; background:var(--side); border-right:1px solid var(--line);
+            display:flex; flex-direction:column; transition:width .2s ease; overflow:hidden; }
+  .sidebar.collapsed{ width:60px; }
+  .side-top{ display:flex; align-items:center; gap:8px; padding:14px 12px; border-bottom:1px solid var(--line); }
+  .toggle{ background:none; border:none; font-size:20px; line-height:1; cursor:pointer; padding:4px; flex:0 0 auto; }
+  .brand{ font-family:'Shippori Mincho',serif; font-size:18px; white-space:nowrap; }
+  .sidebar.collapsed .brand{ display:none; }
+  .side-nav{ display:flex; flex-direction:column; padding:8px; gap:4px; overflow-y:auto; }
+  .item{ display:flex; align-items:center; gap:10px; padding:10px; border:none; background:none; border-radius:10px;
+         cursor:pointer; text-align:left; color:#5b5346; font-size:14px; white-space:nowrap; width:100%; }
+  .item:hover{ background:rgba(0,0,0,.04); }
+  .item .ic{ width:22px; flex:0 0 auto; text-align:center; font-size:16px; }
+  .sidebar.collapsed .item .lbl{ display:none; }
+  .item.on{ color:#fff; }
+  .item.on:hover{ filter:brightness(.96); }
+
+  /* --- メイン --- */
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  header{ padding:14px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; }
+  .cur-ic{ width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; flex:0 0 auto; }
+  header h1{ font-family:'Shippori Mincho',serif; font-size:20px; margin:0; }
+  header .sub{ font-size:11px; opacity:.45; display:block; }
+
+  #log{ flex:1; overflow-y:auto; padding:20px 16px; display:flex; flex-direction:column; gap:16px; }
+  .row{ display:flex; gap:12px; max-width:680px; }
+  .row.user{ justify-content:flex-end; align-self:flex-end; }
+  .avatar{ flex:0 0 auto; width:36px; height:36px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .bubble{ background:var(--card); border:1px solid #e6dfd0; padding:12px 16px; border-radius:18px; border-top-left-radius:4px; line-height:1.7; white-space:pre-wrap; }
+  .bubble.user{ background:var(--ink); color:var(--paper); border:none; border-radius:18px; border-top-right-radius:4px; }
+
+  footer{ padding:12px 16px; border-top:1px solid var(--line); background:var(--side); display:flex; gap:8px; align-items:flex-end; }
+  textarea{ flex:1; resize:none; border:1px solid var(--line); border-radius:12px; padding:12px 16px; font-family:inherit; font-size:15px; outline:none; max-height:140px; }
+  button.iconbtn{ border:1px solid var(--line); background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; }
+  button.send{ border:none; border-radius:12px; padding:12px 14px; color:#fff; cursor:pointer; }
+  button:disabled{ opacity:.4; cursor:default; }
+
+  /* --- モバイル：サイドバーは固定。展開時はオーバーレイ --- */
+  .backdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.3); z-index:4; }
+  @media (max-width:640px){
+    .sidebar{ position:fixed; left:0; top:0; bottom:0; z-index:5; box-shadow:2px 0 10px rgba(0,0,0,.12); }
+    .main{ margin-left:60px; }
+    .backdrop.show{ display:block; }
+  }
+
+  /* --- 合言葉ゲート --- */
+  #gate{ position:fixed; inset:0; background:var(--paper); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; z-index:10; }
+  #gate h2{ font-family:'Shippori Mincho',serif; }
+  #gate input{ padding:12px 16px; border:1px solid var(--line); border-radius:10px; font-size:16px; }
+  .dim{ opacity:.6; font-size:13px; }
+</style>
+</head>
+<body>
+  <div id="gate">
+    <h2>Magis 社内チーム</h2>
+    <p class="dim">名前と合言葉を入力してください</p>
+    <input id="uname" type="text" placeholder="名前（例: shuntaro）" />
+    <input id="pw" type="password" placeholder="合言葉" />
+    <button class="send" id="enter" style="background:#211c16;">入る</button>
+    <p class="dim" id="gateMsg" style="min-height:18px; color:#b0413e;"></p>
+  </div>
+
+  <div class="app">
+    <aside id="sidebar" class="sidebar">
+      <div class="side-top">
+        <button class="toggle" id="toggle" title="折りたたむ / 開く">☰</button>
+        <span class="brand">Magis</span>
+      </div>
+      <nav class="side-nav" id="tabs"></nav>
+    </aside>
+
+    <div class="backdrop" id="backdrop"></div>
+
+    <main class="main">
+      <header>
+        <div class="cur-ic" id="curIc"></div>
+        <div><h1 id="curName">秘書</h1><span class="sub">Magis 社内チーム</span></div>
+        <span id="welcome" style="margin-left:auto; font-size:13px; opacity:.7; white-space:nowrap;"></span>
+      </header>
+      <div id="log"></div>
+      <footer>
+        <button class="iconbtn" id="clear" title="この部署の会話を消す">🗑</button>
+        <textarea id="input" rows="1" placeholder="相談する…"></textarea>
+        <button class="send" id="send">送信</button>
+      </footer>
+    </main>
+  </div>
+
+<script>
+const DEPARTMENTS = [
+  { id:"hisho", name:"秘書",         accent:"#2f7d6b", icon:"📋", greeting:"おはようございます。スケジュール調整、メールの下書き、リマインドなど何でもどうぞ。" },
+  { id:"soumu", name:"総務部",       accent:"#7a4f6d", icon:"🏢", greeting:"総務部です。社内のことなら何でもどうぞ。会社の基本情報や各種手続きの案内、備品・庶務までお任せください。" },
+  { id:"keiri", name:"経理部",       accent:"#b8860b", icon:"🧮", greeting:"経理部です。請求書・売上表・入金まわり、税込/税抜の計算、Shopifyの売上確認などお任せください。" },
+  { id:"roumu", name:"人事労務部",   accent:"#3a6ea5", icon:"👥", greeting:"人事労務部です。採用・入退社などの人事と、勤怠・割増・給与などの労務、どちらもサポートします。" },
+  { id:"houmu", name:"法務部",       accent:"#2f3e6b", icon:"⚖️", greeting:"法務部です。契約書の作成・チェック、法律相談、トラブルの整理をお手伝いします。（最終判断は顧問弁護士へ）" },
+  { id:"eigyo", name:"営業部",       accent:"#c0532b", icon:"📈", greeting:"営業・コンサル担当です。提案やSNS施策、売上をふまえた打ち手など一緒に考えましょう。" },
+  { id:"cs",    name:"CS部",         accent:"#c06b8a", icon:"🎧", greeting:"CS部です。お客様対応の文面づくりやクレーム対応、満足度アップの工夫まで、やさしくお手伝いしますね。" },
+  { id:"joho",  name:"情報システム部", accent:"#4a5568", icon:"💻", greeting:"情シスです。システムの困りごと、効率化の相談、自社アプリの管理などサポートします。" },
+];
+
+let activeId = "hisho";
+let chats = JSON.parse(localStorage.getItem("magis-chats") || "{}");
+let user = localStorage.getItem("magis-user") || "";
+let password = localStorage.getItem("magis-pw") || "";
+const savedCol = localStorage.getItem("magis-collapsed");
+let collapsed = savedCol !== null ? savedCol === "1" : window.matchMedia("(max-width:640px)").matches;
+
+const $ = (id) => document.getElementById(id);
+const dept = () => DEPARTMENTS.find(d => d.id === activeId);
+const save = () => localStorage.setItem("magis-chats", JSON.stringify(chats));
+const isMobile = () => window.matchMedia("(max-width:640px)").matches;
+
+// --- ログインゲート（サーバーで照合してから入室）---
+function openApp(){ $("gate").style.display = "none"; }
+async function tryEnter(u, pw){
+  if (!u || !pw){ $("gateMsg").textContent = "名前と合言葉を入力してください"; return; }
+  $("enter").disabled = true; $("gateMsg").textContent = "確認中…";
+  try {
+    const res = await fetch("/api/chat", {
+      method:"POST",
+      headers:{ "content-type":"application/json", "x-app-user": u, "x-app-password": pw },
+      body: JSON.stringify({ check: true }),
+    });
+    if (res.ok){
+      user = u; password = pw;
+      localStorage.setItem("magis-user", u);
+      localStorage.setItem("magis-pw", pw);
+      $("gateMsg").textContent = ""; openApp();
+      $("welcome").textContent = "ようこそ " + u + " さん！今日もお疲れ様です。";
+    } else {
+      $("gateMsg").textContent = "名前または合言葉が違います";
+    }
+  } catch(e){
+    $("gateMsg").textContent = "接続できませんでした。少し待って再度お試しください。";
+  } finally {
+    $("enter").disabled = false;
+  }
+}
+$("uname").value = user;
+// 既に保存済みの資格情報があれば、それも照合してから入る
+if (user && password){ tryEnter(user, password); }
+$("enter").onclick = () => tryEnter($("uname").value.trim(), $("pw").value.trim());
+$("uname").onkeydown = (e) => { if (e.key === "Enter") $("pw").focus(); };
+$("pw").onkeydown = (e) => { if (e.key === "Enter") tryEnter($("uname").value.trim(), $("pw").value.trim()); };
+
+// --- サイドバー折りたたみ ---
+function applyCollapsed(){
+  $("sidebar").classList.toggle("collapsed", collapsed);
+  $("backdrop").classList.toggle("show", isMobile() && !collapsed);
+}
+$("toggle").onclick = () => { collapsed = !collapsed; localStorage.setItem("magis-collapsed", collapsed ? "1":"0"); applyCollapsed(); };
+$("backdrop").onclick = () => { collapsed = true; applyCollapsed(); };
+window.addEventListener("resize", applyCollapsed);
+
+// --- サイドバー描画 ---
+function renderTabs(){
+  $("tabs").innerHTML = "";
+  DEPARTMENTS.forEach(d => {
+    const b = document.createElement("button");
+    b.className = "item" + (d.id === activeId ? " on" : "");
+    if (d.id === activeId) b.style.background = d.accent;
+    b.title = d.name;
+    b.innerHTML = '<span class="ic">' + d.icon + '</span><span class="lbl">' + d.name + '</span>';
+    b.onclick = () => {
+      activeId = d.id;
+      if (isMobile()){ collapsed = true; applyCollapsed(); }
+      renderTabs(); renderLog();
+    };
+    $("tabs").appendChild(b);
+  });
+}
+
+// --- チャット描画 ---
+function bubble(role, text){
+  const row = document.createElement("div");
+  row.className = "row " + (role === "user" ? "user" : "");
+  if (role !== "user"){
+    const av = document.createElement("div");
+    av.className = "avatar"; av.style.background = dept().accent; av.textContent = dept().icon;
+    row.appendChild(av);
+  }
+  const b = document.createElement("div");
+  b.className = "bubble" + (role === "user" ? " user" : "");
+  b.textContent = text;
+  row.appendChild(b);
+  return row;
+}
+function renderLog(){
+  // ヘッダーの現在部署
+  $("curName").textContent = dept().name;
+  $("curIc").textContent = dept().icon;
+  $("curIc").style.background = dept().accent;
+
+  const log = $("log"); log.innerHTML = "";
+  const msgs = chats[activeId] || [];
+  if (msgs.length === 0) log.appendChild(bubble("assistant", dept().greeting));
+  msgs.forEach(m => log.appendChild(bubble(m.role, m.content)));
+  log.scrollTop = log.scrollHeight;
+  $("input").placeholder = dept().name + "に相談する…";
+  $("send").style.background = dept().accent;
+}
+
+// --- 送信 ---
+async function send(){
+  const text = $("input").value.trim();
+  if (!text) return;
+  const msgs = chats[activeId] || (chats[activeId] = []);
+  msgs.push({ role:"user", content:text });
+  $("input").value = "";
+  renderLog(); save();
+
+  const log = $("log");
+  const thinking = bubble("assistant", "考え中…");
+  log.appendChild(thinking); log.scrollTop = log.scrollHeight;
+  $("send").disabled = true;
+
+  try {
+    const res = await fetch("/api/chat", {
+      method:"POST",
+      headers:{ "content-type":"application/json", "x-app-user": user, "x-app-password": password },
+      body: JSON.stringify({ deptId: activeId, messages: msgs }),
+    });
+    const data = await res.json();
+    thinking.remove();
+    const answer = data.answer || ("エラー: " + (data.error || "不明"));
+    msgs.push({ role:"assistant", content: answer });
+    renderLog(); save();
+  } catch(e){
+    thinking.remove();
+    msgs.push({ role:"assistant", content:"通信エラーが出ました。もう一度お試しください。" });
+    renderLog(); save();
+  } finally {
+    $("send").disabled = false;
+  }
+}
+$("send").onclick = send;
+$("input").onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); } };
+$("clear").onclick = () => { chats[activeId] = []; save(); renderLog(); };
+
+applyCollapsed(); renderTabs(); renderLog();
+</script>
+</body>
+</html>
